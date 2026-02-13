@@ -1,0 +1,178 @@
+:root {
+  color-scheme: light;
+  font-family:
+    "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(circle at top right, #fce7d8, transparent 45%),
+    radial-gradient(circle at bottom left, #d6f4ff, transparent 40%), #f7f6f2;
+  color: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3rem;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+}
+
+p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.subtitle {
+  max-width: 66ch;
+  margin-bottom: 1.5rem;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.toggle-btn {
+  border: 0;
+  border-radius: 0.6rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  background: #0f766e;
+  color: white;
+  cursor: pointer;
+}
+
+.toggle-btn:hover {
+  background: #115e59;
+}
+
+.toggle-btn.secondary-btn {
+  background: #92400e;
+}
+
+.toggle-btn.secondary-btn:hover {
+  background: #78350f;
+}
+
+.toggle-btn.tertiary-btn {
+  background: #1d4ed8;
+}
+
+.toggle-btn.tertiary-btn:hover {
+  background: #1e40af;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid #d7dbdf;
+  border-radius: 0.8rem;
+  background: white;
+  padding: 1rem;
+  min-height: 225px;
+}
+
+.panel h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+
+.panel p {
+  margin-bottom: 0.8rem;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.slot {
+  min-height: 120px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.card {
+  width: 100%;
+  border-radius: 0.7rem;
+  padding: 0.95rem;
+  color: #f8fafc;
+}
+
+.card.immediate {
+  background: linear-gradient(120deg, #9f1239, #be123c);
+}
+
+.card.presence {
+  background: linear-gradient(120deg, #0f766e, #14b8a6);
+}
+
+.card.web-presence {
+  background: linear-gradient(120deg, #0f766e, #14b8a6);
+}
+
+.card.css-presence {
+  background: linear-gradient(120deg, #1d4ed8, #2563eb);
+}
+
+.card.existing-target {
+  background: linear-gradient(120deg, #92400e, #d97706);
+}
+
+.card-css-exit {
+  animation: css-exit 700ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.existing-css-exit {
+  animation: existing-exit 750ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes css-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+}
+
+@keyframes existing-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px) scale(0.96);
+  }
+}
+
+.card strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.existing-controls {
+  margin: 0 0 0.8rem;
+}

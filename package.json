@@ -1,0 +1,35 @@
+{
+  "name": "vanimate-presence",
+  "version": "0.1.0",
+  "description": "Simple AnimatePresence-like DOM persistence for VanJS",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "biome check .",
+    "clean": "rm -rf dist",
+    "demo:serve": "node ./scripts/serve-demo.mjs",
+    "demo": "npm run build && npm run demo:serve",
+    "format": "biome format --write .",
+    "lint": "biome lint ."
+  },
+  "keywords": [
+    "vanjs",
+    "animation",
+    "presence"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "2.3.15"
+  }
+}
