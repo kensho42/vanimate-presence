@@ -1,6 +1,62 @@
 # VanimatePresence
 
-`VanimatePresence` is a tiny TypeScript helper for VanJS that keeps a removed node in the DOM until its exit animation completes.
+`VanimatePresence` is a tiny TypeScript helper that keeps a removed node in the DOM until its exit animation completes.
+It works with plain DOM code and any framework. VanJS usage is supported, but optional.
+
+## API
+
+```ts
+import { VanimatePresence, webExit, cssExit } from "vanimate-presence";
+
+const el = document.createElement("div");
+el.textContent = "Loading...";
+
+VanimatePresence(el, {
+  exit: webExit(
+    [{ opacity: 1 }, { opacity: 0 }],
+    { duration: 400, fill: "forwards" },
+  ),
+});
+
+document.body.append(el);
+el.remove();
+```
+
+CSS exit option:
+
+```ts
+VanimatePresence(el, {
+  exit: cssExit("fade-out", { waitFor: "animationend" }),
+});
+```
+
+Attach to an existing element:
+
+```ts
+document.querySelector("#target")?.VanimatePresence({
+  exit: cssExit("fade-out", { waitFor: "animationend" }),
+});
+```
+
+VanJS usage (optional):
+
+```ts
+import van from "vanjs-core";
+import { VanimatePresence, webExit } from "vanimate-presence";
+
+const visible = van.state(true);
+const { div } = van.tags;
+
+const view = () =>
+  visible.val
+    ? VanimatePresence(div("Loading..."), {
+        exit: webExit(
+          [{ opacity: 1 }, { opacity: 0 }],
+          { duration: 400, fill: "forwards" },
+        ),
+      })
+    : "";
+```
 
 ## Build
 
@@ -36,39 +92,3 @@ The demo compares:
 - delayed removal with Web Animations
 - delayed removal with CSS animation classes
 - attachment to an existing DOM element via prototype method
-
-## API
-
-```ts
-import van from "vanjs-core";
-import { VanimatePresence, webExit, cssExit } from "vanimate-presence";
-
-const visible = van.state(true);
-const { div } = van.tags;
-
-const view = () =>
-  visible.val
-    ? VanimatePresence(div("Loading..."), {
-        exit: webExit(
-          [{ opacity: 1 }, { opacity: 0 }],
-          { duration: 400, fill: "forwards" },
-        ),
-      })
-    : "";
-```
-
-CSS exit option:
-
-```ts
-VanimatePresence(div("Loading..."), {
-  exit: cssExit("fade-out", { waitFor: "animationend" }),
-});
-```
-
-Attach to an existing element:
-
-```ts
-document.querySelector("#target")?.VanimatePresence({
-  exit: cssExit("fade-out", { waitFor: "animationend" }),
-});
-```
