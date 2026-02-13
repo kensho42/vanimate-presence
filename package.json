@@ -15,7 +15,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run clean && npm run build:js && npm run build:types",
+    "build:js": "bun build ./src/index.ts ./src/vanimate-presence.ts --outdir ./dist --format esm --target browser --minify",
+    "build:types": "tsc -p tsconfig.json --emitDeclarationOnly",
     "check": "biome check .",
     "clean": "rm -rf dist",
     "demo:serve": "node ./scripts/serve-demo.mjs",
