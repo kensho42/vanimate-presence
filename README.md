@@ -27,6 +27,12 @@ CSS exit option:
 ```ts
 VanimatePresence(el, {
   mode: "popLayout", // optional: "sync" (default) | "popLayout"
+  layout: {
+    // optional in popLayout mode:
+    // animateSiblings defaults to true
+    durationMs: 320,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+  },
   exit: cssExit("fade-out", { waitFor: "animationend" }),
 });
 ```
@@ -34,6 +40,7 @@ VanimatePresence(el, {
 Mode notes:
 - `sync` (default): element remains in layout flow during exit.
 - `popLayout`: element is popped out of flow while exit runs, so siblings reflow immediately.
+- In `popLayout`, sibling movement is FLIP-animated by default (ease-out style).
 
 Attach to an existing element:
 

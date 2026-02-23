@@ -144,7 +144,7 @@ const app = main(
     div(
       { class: "panel" },
       h2("With Presence (popLayout)"),
-      p("Top card pops out of flow immediately so the bottom row shifts now."),
+      p("Top card pops out of flow while all rows below ease into place."),
       div(
         { class: "slot stack-slot" },
         div(
@@ -152,8 +152,23 @@ const app = main(
           () => (show.val ? renderPopLayoutCard() : ""),
           div(
             { class: "card stack-sibling" },
-            strong("Sibling Row"),
-            "This row moves instantly when top card exits in popLayout mode.",
+            strong("Sibling Row A"),
+            "First sibling reflows with easing.",
+          ),
+          div(
+            { class: "card stack-sibling" },
+            strong("Sibling Row B"),
+            "Second sibling follows the same eased motion.",
+          ),
+          div(
+            { class: "card stack-sibling" },
+            strong("Sibling Row C"),
+            "Third sibling makes the stack shift more obvious.",
+          ),
+          div(
+            { class: "card stack-sibling" },
+            strong("Sibling Row D"),
+            "Fourth sibling confirms multi-row layout easing.",
           ),
         ),
       ),

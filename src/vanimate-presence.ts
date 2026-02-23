@@ -21,9 +21,16 @@ export type PresenceExit<TElement extends HTMLElement> =
   | PresenceWebExit
   | PresenceCssExit;
 
+export interface PresenceLayoutOptions {
+  animateSiblings?: boolean;
+  durationMs?: number;
+  easing?: string;
+}
+
 export interface VanimatePresenceOptions<TElement extends HTMLElement> {
   exit: PresenceExit<TElement>;
   mode?: "sync" | "popLayout";
+  layout?: PresenceLayoutOptions;
 }
 
 declare global {
@@ -40,6 +47,7 @@ interface PresenceRecord {
 const presenceRegistry = new WeakMap<HTMLElement, PresenceRecord>();
 const observerRegistry = new WeakMap<Document, MutationObserver>();
 const overlayRegistry = new WeakMap<Document, HTMLElement>();
+const siblingLayoutAnimations = new WeakMap<HTMLElement, Animation>();
 const prototypeMethodName = "VanimatePresence";
 
 export function VanimatePresence<TElement extends HTMLElement>(
@@ -184,17 +192,104 @@ function handleRemovedNode(
     return;
   }
 
+  const playSiblingReflow =
+    presence.options.mode === "popLayout"
+      ? prepareSiblingReflow(parentNode, removedNode, presence.options.layout)
+      : null;
+
   presence.exiting = true;
   const cleanupPopLayout =
     presence.options.mode === "popLayout"
       ? popElementOutOfLayout(removedNode)
       : null;
+  if (cleanupPopLayout) {
+    playSiblingReflow?.();
+  }
 
   void runExit(removedNode, presence).finally(() => {
     presenceRegistry.delete(removedNode);
     cleanupPopLayout?.();
     removedNode.remove();
   });
+}
+
+function prepareSiblingReflow(
+  parentNode: Node,
+  exitingElement: HTMLElement,
+  layoutOptions?: PresenceLayoutOptions,
+): (() => void) | null {
+  if (!(parentNode instanceof HTMLElement)) {
+    return null;
+  }
+
+  const config = resolveLayoutOptions(layoutOptions);
+  if (!config.animateSiblings) {
+    return null;
+  }
+
+  const siblings = Array.from(parentNode.children).filter(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement && child !== exitingElement,
+  );
+  if (siblings.length === 0) {
+    return null;
+  }
+
+  const beforeRects = new Map<HTMLElement, DOMRect>();
+  for (const sibling of siblings) {
+    beforeRects.set(sibling, sibling.getBoundingClientRect());
+  }
+
+  return () => {
+    for (const sibling of siblings) {
+      if (!sibling.isConnected) {
+        continue;
+      }
+
+      const beforeRect = beforeRects.get(sibling);
+      if (!beforeRect) {
+        continue;
+      }
+
+      const afterRect = sibling.getBoundingClientRect();
+      const deltaX = beforeRect.left - afterRect.left;
+      const deltaY = beforeRect.top - afterRect.top;
+
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+        continue;
+      }
+
+      siblingLayoutAnimations.get(sibling)?.cancel();
+      const animation = sibling.animate(
+        [{ translate: `${deltaX}px ${deltaY}px` }, { translate: "0px 0px" }],
+        {
+          duration: config.durationMs,
+          easing: config.easing,
+          fill: "both",
+        },
+      );
+      siblingLayoutAnimations.set(sibling, animation);
+      void animation.finished
+        .catch(() => undefined)
+        .then(() => {
+          if (siblingLayoutAnimations.get(sibling) === animation) {
+            siblingLayoutAnimations.delete(sibling);
+          }
+        });
+    }
+  };
+}
+
+function resolveLayoutOptions(layoutOptions?: PresenceLayoutOptions): {
+  animateSiblings: boolean;
+  durationMs: number;
+  easing: string;
+} {
+  return {
+    animateSiblings: layoutOptions?.animateSiblings ?? true,
+    durationMs: layoutOptions?.durationMs ?? 320,
+    easing: layoutOptions?.easing ?? "cubic-bezier(0.22, 1, 0.36, 1)",
+  };
 }
 
 function popElementOutOfLayout(element: HTMLElement): (() => void) | null {
