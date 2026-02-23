@@ -23,6 +23,7 @@ export type PresenceExit<TElement extends HTMLElement> =
 
 export interface VanimatePresenceOptions<TElement extends HTMLElement> {
   exit: PresenceExit<TElement>;
+  mode?: "sync" | "popLayout";
 }
 
 declare global {
@@ -38,6 +39,7 @@ interface PresenceRecord {
 
 const presenceRegistry = new WeakMap<HTMLElement, PresenceRecord>();
 const observerRegistry = new WeakMap<Document, MutationObserver>();
+const overlayRegistry = new WeakMap<Document, HTMLElement>();
 const prototypeMethodName = "VanimatePresence";
 
 export function VanimatePresence<TElement extends HTMLElement>(
@@ -167,6 +169,10 @@ function handleRemovedNode(
     return;
   }
 
+  if (presence.exiting) {
+    return;
+  }
+
   if (!parentNode.isConnected) {
     return;
   }
@@ -178,15 +184,86 @@ function handleRemovedNode(
     return;
   }
 
-  if (presence.exiting) {
+  presence.exiting = true;
+  const cleanupPopLayout =
+    presence.options.mode === "popLayout"
+      ? popElementOutOfLayout(removedNode)
+      : null;
+
+  void runExit(removedNode, presence).finally(() => {
+    presenceRegistry.delete(removedNode);
+    cleanupPopLayout?.();
+    removedNode.remove();
+  });
+}
+
+function popElementOutOfLayout(element: HTMLElement): (() => void) | null {
+  const doc = element.ownerDocument;
+  const view = doc.defaultView;
+  if (!doc.body || !view) {
+    return null;
+  }
+
+  try {
+    const rect = element.getBoundingClientRect();
+    if (!Number.isFinite(rect.top) || !Number.isFinite(rect.left)) {
+      return null;
+    }
+
+    const overlayRoot = ensureOverlayRoot(doc);
+    const style = element.style;
+    style.position = "fixed";
+    style.top = `${rect.top}px`;
+    style.left = `${rect.left}px`;
+    style.width = `${rect.width}px`;
+    style.height = `${rect.height}px`;
+    style.margin = "0";
+    style.pointerEvents = "none";
+
+    overlayRoot.append(element);
+
+    return () => {
+      cleanupOverlayRoot(doc);
+    };
+  } catch {
+    return null;
+  }
+}
+
+function ensureOverlayRoot(doc: Document): HTMLElement {
+  const existingRoot = overlayRegistry.get(doc);
+  if (existingRoot?.isConnected) {
+    return existingRoot;
+  }
+
+  const overlayRoot = doc.createElement("div");
+  overlayRoot.dataset.vanimateOverlayRoot = "true";
+  overlayRoot.style.position = "fixed";
+  overlayRoot.style.left = "0";
+  overlayRoot.style.top = "0";
+  overlayRoot.style.width = "100%";
+  overlayRoot.style.height = "100%";
+  overlayRoot.style.pointerEvents = "none";
+  overlayRoot.style.overflow = "visible";
+  overlayRoot.style.zIndex = "2147483647";
+
+  doc.body.append(overlayRoot);
+  overlayRegistry.set(doc, overlayRoot);
+  return overlayRoot;
+}
+
+function cleanupOverlayRoot(doc: Document): void {
+  const overlayRoot = overlayRegistry.get(doc);
+  if (!overlayRoot) {
     return;
   }
 
-  presence.exiting = true;
-  void runExit(removedNode, presence).finally(() => {
-    presenceRegistry.delete(removedNode);
-    removedNode.remove();
-  });
+  if (overlayRoot.childElementCount > 0) {
+    return;
+  }
+
+  overlayRoot.remove();
+  overlayRegistry.delete(doc);
 }
 
 async function runExit(

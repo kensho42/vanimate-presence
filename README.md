@@ -26,9 +26,14 @@ CSS exit option:
 
 ```ts
 VanimatePresence(el, {
+  mode: "popLayout", // optional: "sync" (default) | "popLayout"
   exit: cssExit("fade-out", { waitFor: "animationend" }),
 });
 ```
+
+Mode notes:
+- `sync` (default): element remains in layout flow during exit.
+- `popLayout`: element is popped out of flow while exit runs, so siblings reflow immediately.
 
 Attach to an existing element:
 
@@ -50,6 +55,7 @@ const { div } = van.tags;
 const view = () =>
   visible.val
     ? VanimatePresence(div("Loading..."), {
+        mode: "popLayout",
         exit: webExit(
           [{ opacity: 1 }, { opacity: 0 }],
           { duration: 400, fill: "forwards" },
@@ -91,4 +97,5 @@ The demo compares:
 - immediate removal (plain conditional VanJS render)
 - delayed removal with Web Animations
 - delayed removal with CSS animation classes
+- popLayout mode (immediate sibling reflow while exit keeps animating)
 - attachment to an existing DOM element via prototype method

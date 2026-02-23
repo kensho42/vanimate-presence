@@ -47,6 +47,19 @@ const renderCssCard = () =>
     },
   );
 
+const renderPopLayoutCard = () =>
+  VanimatePresence(
+    div(
+      { class: "card presence pop-layout-presence" },
+      strong("Pop Layout Exit"),
+      "Leaves layout immediately while the exit animation keeps playing.",
+    ),
+    {
+      mode: "popLayout",
+      exit: cssExit("card-pop-layout-exit", { waitFor: "animationend" }),
+    },
+  );
+
 const createExistingTargetNode = () =>
   div(
     { id: "target", class: "card existing-target" },
@@ -127,6 +140,23 @@ const app = main(
       h2("With Presence (CSS)"),
       p("Node waits for CSS `animationend` before final removal."),
       div({ class: "slot" }, () => (show.val ? renderCssCard() : "")),
+    ),
+    div(
+      { class: "panel" },
+      h2("With Presence (popLayout)"),
+      p("Top card pops out of flow immediately so the bottom row shifts now."),
+      div(
+        { class: "slot stack-slot" },
+        div(
+          { class: "stack" },
+          () => (show.val ? renderPopLayoutCard() : ""),
+          div(
+            { class: "card stack-sibling" },
+            strong("Sibling Row"),
+            "This row moves instantly when top card exits in popLayout mode.",
+          ),
+        ),
+      ),
     ),
     div(
       { class: "panel" },
