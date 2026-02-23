@@ -48,6 +48,10 @@ const presenceRegistry = new WeakMap<HTMLElement, PresenceRecord>();
 const observerRegistry = new WeakMap<Document, MutationObserver>();
 const overlayRegistry = new WeakMap<Document, HTMLElement>();
 const siblingLayoutAnimations = new WeakMap<HTMLElement, Animation>();
+const parentRectSnapshots = new WeakMap<
+  HTMLElement,
+  Map<HTMLElement, DOMRect>
+>();
 const prototypeMethodName = "VanimatePresence";
 
 export function VanimatePresence<TElement extends HTMLElement>(
@@ -145,22 +149,59 @@ function ensureObserver(doc: Document): void {
 
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      if (mutation.type !== "childList" || mutation.removedNodes.length === 0) {
+      if (mutation.type !== "childList") {
         continue;
       }
 
-      for (let index = 0; index < mutation.removedNodes.length; index += 1) {
-        const removedNode = mutation.removedNodes.item(index);
-        if (!removedNode) {
-          continue;
+      if (mutation.removedNodes.length > 0) {
+        for (let index = 0; index < mutation.removedNodes.length; index += 1) {
+          const removedNode = mutation.removedNodes.item(index);
+          if (!removedNode) {
+            continue;
+          }
+          handleRemovedNode(removedNode, mutation.target, mutation.nextSibling);
         }
-        handleRemovedNode(removedNode, mutation.target, mutation.nextSibling);
       }
+
+      if (mutation.addedNodes.length > 0) {
+        for (let index = 0; index < mutation.addedNodes.length; index += 1) {
+          const addedNode = mutation.addedNodes.item(index);
+          if (!addedNode) {
+            continue;
+          }
+          handleAddedNode(addedNode, mutation.target);
+        }
+      }
+
+      recordParentSnapshot(mutation.target);
     }
   });
 
   observer.observe(doc, { childList: true, subtree: true });
   observerRegistry.set(doc, observer);
+}
+
+function handleAddedNode(addedNode: Node, parentNode: Node): void {
+  if (!(addedNode instanceof HTMLElement)) {
+    return;
+  }
+  if (!(parentNode instanceof HTMLElement)) {
+    return;
+  }
+
+  const presence = presenceRegistry.get(addedNode);
+  if (!presence) {
+    return;
+  }
+  if (presence.options.mode !== "popLayout") {
+    return;
+  }
+
+  animateSiblingReflowFromSnapshot(
+    parentNode,
+    addedNode,
+    presence.options.layout,
+  );
 }
 
 function handleRemovedNode(
@@ -278,6 +319,73 @@ function prepareSiblingReflow(
         });
     }
   };
+}
+
+function animateSiblingReflowFromSnapshot(
+  parentNode: HTMLElement,
+  stationaryElement: HTMLElement,
+  layoutOptions?: PresenceLayoutOptions,
+): void {
+  const config = resolveLayoutOptions(layoutOptions);
+  if (!config.animateSiblings) {
+    return;
+  }
+
+  const snapshot = parentRectSnapshots.get(parentNode);
+  if (!snapshot) {
+    return;
+  }
+
+  for (const child of Array.from(parentNode.children)) {
+    if (!(child instanceof HTMLElement) || child === stationaryElement) {
+      continue;
+    }
+
+    const beforeRect = snapshot.get(child);
+    if (!beforeRect) {
+      continue;
+    }
+
+    const afterRect = child.getBoundingClientRect();
+    const deltaX = beforeRect.left - afterRect.left;
+    const deltaY = beforeRect.top - afterRect.top;
+    if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+      continue;
+    }
+
+    siblingLayoutAnimations.get(child)?.cancel();
+    const animation = child.animate(
+      [{ translate: `${deltaX}px ${deltaY}px` }, { translate: "0px 0px" }],
+      {
+        duration: config.durationMs,
+        easing: config.easing,
+        fill: "both",
+      },
+    );
+    siblingLayoutAnimations.set(child, animation);
+    void animation.finished
+      .catch(() => undefined)
+      .then(() => {
+        if (siblingLayoutAnimations.get(child) === animation) {
+          siblingLayoutAnimations.delete(child);
+        }
+      });
+  }
+}
+
+function recordParentSnapshot(node: Node): void {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+
+  const snapshot = new Map<HTMLElement, DOMRect>();
+  for (const child of Array.from(node.children)) {
+    if (!(child instanceof HTMLElement)) {
+      continue;
+    }
+    snapshot.set(child, child.getBoundingClientRect());
+  }
+  parentRectSnapshots.set(node, snapshot);
 }
 
 function resolveLayoutOptions(layoutOptions?: PresenceLayoutOptions): {

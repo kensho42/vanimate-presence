@@ -40,7 +40,7 @@ VanimatePresence(el, {
 Mode notes:
 - `sync` (default): element remains in layout flow during exit.
 - `popLayout`: element is popped out of flow while exit runs, so siblings reflow immediately.
-- In `popLayout`, sibling movement is FLIP-animated by default (ease-out style).
+- In `popLayout`, sibling movement is FLIP-animated by default (ease-out style) on both removal and insertion.
 
 Attach to an existing element:
 
