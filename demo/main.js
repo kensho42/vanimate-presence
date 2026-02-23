@@ -5,6 +5,16 @@ const { main, h1, h2, p, div, button, strong } = van.tags;
 
 const show = van.state(true);
 const existingTargetStatus = van.state("mounted");
+const initialPopListItems = [
+  { id: 1, label: "Alpha" },
+  { id: 2, label: "Bravo" },
+  { id: 3, label: "Charlie" },
+  { id: 4, label: "Delta" },
+];
+const popListItems = van.state(initialPopListItems);
+const nextPopListId = van.state(5);
+const popListItemNodes = new Map();
+const popListHost = div({ class: "stack pop-list-stack" });
 
 const renderImmediateCard = () =>
   div(
@@ -60,6 +70,51 @@ const renderPopLayoutCard = () =>
     },
   );
 
+const renderPopListItem = (item, index) =>
+  VanimatePresence(
+    div(
+      {
+        class: "card pop-list-item",
+        style: `--row-tone: ${index % 4};`,
+      },
+      strong(`Row ${item.label}`),
+      `Item id ${item.id} - siblings ease on add/remove in popLayout mode.`,
+    ),
+    {
+      mode: "popLayout",
+      exit: cssExit("card-pop-layout-exit", { waitFor: "animationend" }),
+    },
+  );
+
+const syncPopListDom = () => {
+  const desiredIds = new Set(popListItems.val.map((item) => item.id));
+
+  for (const [id, node] of popListItemNodes) {
+    if (desiredIds.has(id)) {
+      continue;
+    }
+    if (node.isConnected) {
+      node.remove();
+    }
+    popListItemNodes.delete(id);
+  }
+
+  popListItems.val.forEach((item, index) => {
+    let node = popListItemNodes.get(item.id);
+    if (!(node instanceof HTMLElement)) {
+      node = renderPopListItem(item, index);
+      popListItemNodes.set(item.id, node);
+    } else {
+      node.style.setProperty("--row-tone", String(index % 4));
+    }
+
+    const referenceNode = popListHost.children.item(index);
+    if (referenceNode !== node) {
+      popListHost.insertBefore(node, referenceNode);
+    }
+  });
+};
+
 const createExistingTargetNode = () =>
   div(
     { id: "target", class: "card existing-target" },
@@ -101,6 +156,28 @@ const removeTarget = () => {
   existingTargetStatus.val = "exiting";
   target.remove();
 };
+
+const addPopListItem = () => {
+  const id = nextPopListId.val;
+  const labels = ["Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet"];
+  const label = labels[id % labels.length] ?? `Item-${id}`;
+  popListItems.val = [{ id, label }, ...popListItems.val];
+  nextPopListId.val = id + 1;
+};
+
+const removeTopPopListItem = () => {
+  if (popListItems.val.length === 0) {
+    return;
+  }
+  popListItems.val = popListItems.val.slice(1);
+};
+
+const resetPopList = () => {
+  popListItems.val = [...initialPopListItems];
+  nextPopListId.val = 5;
+};
+
+van.derive(syncPopListDom);
 
 const app = main(
   h1("VanimatePresence Demo"),
@@ -172,6 +249,42 @@ const app = main(
           ),
         ),
       ),
+    ),
+    div(
+      { class: "panel" },
+      h2("popLayout List (Add/Remove)"),
+      p(
+        "Add or remove rows to observe eased sibling reflow in both directions.",
+      ),
+      div(
+        { class: "controls list-controls" },
+        button(
+          {
+            class: "toggle-btn tertiary-btn",
+            onclick: addPopListItem,
+          },
+          "Add item",
+        ),
+        button(
+          {
+            class: "toggle-btn secondary-btn",
+            onclick: removeTopPopListItem,
+          },
+          "Remove top",
+        ),
+        button(
+          {
+            class: "toggle-btn",
+            onclick: resetPopList,
+          },
+          "Reset",
+        ),
+      ),
+      div(
+        { class: "status-text" },
+        () => `List size: ${popListItems.val.length}`,
+      ),
+      div({ class: "slot stack-slot" }, popListHost),
     ),
     div(
       { class: "panel" },
