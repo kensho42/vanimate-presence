@@ -5,6 +5,8 @@ const { main, h1, h2, p, div, button, strong } = van.tags;
 
 const show = van.state(true);
 const existingTargetStatus = van.state("mounted");
+const existingExitDurationMs = 750;
+let existingTargetStatusTimer;
 const initialPopListItems = [
   { id: 1, label: "Alpha" },
   { id: 2, label: "Bravo" },
@@ -129,6 +131,11 @@ const attachPresenceToTarget = (element) => {
 };
 
 const ensureTargetExists = () => {
+  if (existingTargetStatusTimer !== undefined) {
+    window.clearTimeout(existingTargetStatusTimer);
+    existingTargetStatusTimer = undefined;
+  }
+
   const slot = document.getElementById("existing-slot");
   if (!(slot instanceof HTMLElement)) {
     return;
@@ -147,6 +154,11 @@ const ensureTargetExists = () => {
 };
 
 const removeTarget = () => {
+  if (existingTargetStatusTimer !== undefined) {
+    window.clearTimeout(existingTargetStatusTimer);
+    existingTargetStatusTimer = undefined;
+  }
+
   const target = document.querySelector("#target");
   if (!(target instanceof HTMLElement)) {
     existingTargetStatus.val = "missing";
@@ -155,6 +167,12 @@ const removeTarget = () => {
 
   existingTargetStatus.val = "exiting";
   target.remove();
+  existingTargetStatusTimer = window.setTimeout(() => {
+    existingTargetStatusTimer = undefined;
+    const activeTarget = document.querySelector("#target");
+    existingTargetStatus.val =
+      activeTarget instanceof HTMLElement ? "mounted" : "missing";
+  }, existingExitDurationMs + 80);
 };
 
 const addPopListItem = () => {
